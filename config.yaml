@@ -8,3 +8,4 @@ redis:
 prefixes:
   - uri: "/cars"
     redis_prefix: "cars."
+    cache_duration: 1s

@@ -15,6 +15,7 @@ import (
 	"redis-go-dispatcher/server"
 	"strconv"
 	"testing"
+	"time"
 )
 
 type IntegrationTestSuite struct {
@@ -24,14 +25,18 @@ type IntegrationTestSuite struct {
 	RedisContainer *rt.RedisContainer
 }
 
+var cacheDuration = 300 * time.Millisecond
+
 func testPrefixes() []Prefix {
 	return []Prefix{
 		{
-			URI:         "/cars",
-			RedisPrefix: "cars.",
+			URI:           "/cars",
+			RedisPrefix:   "cars.",
+			CacheDuration: cacheDuration,
 		}, {
-			URI:         "/people",
-			RedisPrefix: "people.",
+			URI:           "/people",
+			RedisPrefix:   "people.",
+			CacheDuration: cacheDuration,
 		},
 	}
 }
@@ -58,6 +63,7 @@ func (suite *IntegrationTestSuite) TearDownTest() {
 		_ = conn.Close()
 	}(conn)
 	_, _ = conn.Do("FLUSHALL")
+	suite.WaitForCacheDuration()
 }
 
 func (suite *IntegrationTestSuite) startWebServer(connectionString string) {
@@ -72,6 +78,8 @@ func (suite *IntegrationTestSuite) startWebServer(connectionString string) {
 		ServerPort: port,
 	})
 
+	// Waiting for the server to start
+	time.Sleep(1 * time.Second)
 	suite.URLPrefix = fmt.Sprintf("http://localhost:%s", port)
 }
 
@@ -105,6 +113,10 @@ func getFreePort() string {
 	return strconv.Itoa(port)
 }
 
+func (suite *IntegrationTestSuite) WaitForCacheDuration() {
+	time.Sleep(cacheDuration + 200*time.Millisecond)
+}
+
 func (suite *IntegrationTestSuite) PutToRedisAsJson(key string, obj interface{}) {
 	conn := suite.RedisPool.Get()
 	defer func(conn redis.Conn) {
@@ -113,6 +125,17 @@ func (suite *IntegrationTestSuite) PutToRedisAsJson(key string, obj interface{})
 
 	value, _ := json.Marshal(obj)
 	_, _ = conn.Do("SET", key, value)
+	suite.WaitForCacheDuration()
+}
+
+func (suite *IntegrationTestSuite) DeleteFromRedis(key string) {
+	conn := suite.RedisPool.Get()
+	defer func(conn redis.Conn) {
+		_ = conn.Close()
+	}(conn)
+
+	_, _ = conn.Do("DEL", key)
+	suite.WaitForCacheDuration()
 }
 
 func (suite *IntegrationTestSuite) HttpGetJson(uri string, target interface{}) {

@@ -26,5 +26,6 @@ func StartServer(loadedConfig conf.Config) {
 
 	BuildRouting(e)
 
-	e.Logger.Fatal(e.Start(":" + config.ServerPort))
+	err := e.Start(":" + config.ServerPort)
+	e.Logger.Fatal(err)
 }

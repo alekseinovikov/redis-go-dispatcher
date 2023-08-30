@@ -3,11 +3,13 @@ package config
 import (
 	"gopkg.in/yaml.v3"
 	"os"
+	"time"
 )
 
 type Prefix struct {
-	URI         string `yaml:"uri"`
-	RedisPrefix string `yaml:"redis_prefix"`
+	URI           string        `yaml:"uri"`
+	RedisPrefix   string        `yaml:"redis_prefix"`
+	CacheDuration time.Duration `yaml:"cache_duration"`
 }
 
 type RedisConfig struct {

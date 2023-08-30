@@ -29,6 +29,22 @@ func (suite *IntegrationTestSuite) TestGetByIdFound() {
 	assert.Equal(suite.T(), original, result)
 }
 
+func (suite *IntegrationTestSuite) TestGetByIdFoundAndThenDeleted() {
+	// given
+	original := Car{ID: "1", Model: "Toyota", Year: 2022}
+	suite.PutToRedisAsJson("cars.1", original)
+	var result Car
+	suite.HttpGetJson("/cars/1", &result)
+	assert.Equal(suite.T(), original, result)
+
+	// when
+	suite.DeleteFromRedis("cars.1")
+	response := suite.HttpGet("/cars/1")
+
+	// then
+	assert.Equal(suite.T(), 404, response.StatusCode)
+}
+
 func (suite *IntegrationTestSuite) TestGetByIdMultiplePrefixesFound() {
 	// given
 	originalCar := Car{ID: "1", Model: "Toyota", Year: 2022}
@@ -46,6 +62,32 @@ func (suite *IntegrationTestSuite) TestGetByIdMultiplePrefixesFound() {
 	// then
 	assert.Equal(suite.T(), originalCar, carResult)
 	assert.Equal(suite.T(), originalPerson, personResult)
+}
+
+func (suite *IntegrationTestSuite) TestGetByIdMultiplePrefixesFoundAndThenOneDeleted() {
+	// given
+	originalCar := Car{ID: "1", Model: "Toyota", Year: 2022}
+	suite.PutToRedisAsJson("cars.1", originalCar)
+
+	originalPerson := Person{ID: "1", Name: "John", Age: 30}
+	suite.PutToRedisAsJson("people.1", originalPerson)
+
+	var carResult Car
+	suite.HttpGetJson("/cars/1", &carResult)
+	var personResult Person
+	suite.HttpGetJson("/people/1", &personResult)
+
+	assert.Equal(suite.T(), originalCar, carResult)
+	assert.Equal(suite.T(), originalPerson, personResult)
+
+	// when
+	suite.DeleteFromRedis("people.1")
+	suite.HttpGetJson("/cars/1", &carResult)
+	response := suite.HttpGet("/people/1")
+
+	// then
+	assert.Equal(suite.T(), 404, response.StatusCode)
+	assert.Equal(suite.T(), originalCar, carResult)
 }
 
 func (suite *IntegrationTestSuite) TestGetByIdNotFound() {
