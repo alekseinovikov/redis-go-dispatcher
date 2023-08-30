@@ -29,6 +29,9 @@ func testPrefixes() []Prefix {
 		{
 			URI:         "/cars",
 			RedisPrefix: "cars.",
+		}, {
+			URI:         "/people",
+			RedisPrefix: "people.",
 		},
 	}
 }
