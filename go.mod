@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/gomodule/redigo v1.8.9
-	github.com/gorilla/mux v1.8.0
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/testcontainers/testcontainers-go/modules/redis v0.23.0

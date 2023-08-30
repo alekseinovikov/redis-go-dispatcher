@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	rt "github.com/testcontainers/testcontainers-go/modules/redis"
 	"net/http"
+	. "redis-go-dispatcher/config"
+	"redis-go-dispatcher/server"
 	"strconv"
 	"testing"
 )
@@ -57,7 +59,7 @@ func (suite *IntegrationTestSuite) TearDownTest() {
 
 func (suite *IntegrationTestSuite) startWebServer(connectionString string) {
 	port := getFreePort()
-	go startServer(Config{
+	go server.StartServer(Config{
 		Prefixes: testPrefixes(),
 		Redis: RedisConfig{
 			URL:           connectionString,
@@ -118,4 +120,10 @@ func (suite *IntegrationTestSuite) HttpGetJson(uri string, target interface{}) {
 	err = json.NewDecoder(resp.Body).Decode(target)
 	_ = resp.Body.Close()
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *IntegrationTestSuite) HttpGet(uri string) *http.Response {
+	resp, err := http.Get(suite.URLPrefix + uri)
+	assert.NoError(suite.T(), err)
+	return resp
 }
