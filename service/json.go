@@ -4,6 +4,14 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+type RedisService interface {
+	GetByKey(id string) (string, error)
+	GetAll() ([]string, error)
+	GetAllKeys() ([]string, error)
+	GetPrefix() string
+	GetById(id string) (string, error)
+}
+
 type JsonService struct {
 	prefix    string
 	redisPool *redis.Pool

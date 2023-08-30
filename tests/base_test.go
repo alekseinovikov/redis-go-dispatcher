@@ -30,13 +30,17 @@ var cacheDuration = 300 * time.Millisecond
 func testPrefixes() []Prefix {
 	return []Prefix{
 		{
-			URI:           "/cars",
-			RedisPrefix:   "cars.",
-			CacheDuration: cacheDuration,
+			URI:                  "/cars",
+			RedisPrefix:          "cars.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: cacheDuration,
+			CacheTtl:             cacheDuration,
 		}, {
-			URI:           "/people",
-			RedisPrefix:   "people.",
-			CacheDuration: cacheDuration,
+			URI:                  "/people",
+			RedisPrefix:          "people.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: cacheDuration,
+			CacheTtl:             cacheDuration,
 		},
 	}
 }

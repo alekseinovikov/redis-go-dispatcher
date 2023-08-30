@@ -8,4 +8,6 @@ redis:
 prefixes:
   - uri: "/cars"
     redis_prefix: "cars."
-    cache_duration: 1s
+    cache_enabled: true
+    cache_refresh_duration: 1s
+    cache_ttl: 5s

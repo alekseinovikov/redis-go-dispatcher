@@ -2,31 +2,40 @@ package service
 
 import (
 	"fmt"
-	"sync"
 	"time"
+
+	"github.com/dgraph-io/ristretto"
 )
 
-type ReadService interface {
-	GetByKey(id string) (string, error)
-	GetAll() ([]string, error)
-	GetAllKeys() ([]string, error)
-	GetPrefix() string
-}
-
 type CacheService struct {
-	cache   map[string]string
-	service ReadService
-	rwLock  sync.RWMutex
+	cache        *ristretto.Cache
+	service      RedisService
+	cacheTtl     time.Duration
+	cacheKeysKey string
 }
 
-func NewCacheService(readService ReadService, duration time.Duration) *CacheService {
-	c := &CacheService{
-		cache:   make(map[string]string),
-		service: readService,
-		rwLock:  sync.RWMutex{},
+func NewCacheService(
+	readService RedisService,
+	cacheRefreshDuration time.Duration,
+	cacheTtl time.Duration,
+) *CacheService {
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+	if err != nil {
+		panic(err)
 	}
 
-	ticker := time.NewTicker(duration)
+	c := &CacheService{
+		cache:        cache,
+		service:      readService,
+		cacheTtl:     cacheTtl,
+		cacheKeysKey: "REDIS_GO_DISPATCHER_CACHE_KEYS",
+	}
+
+	ticker := time.NewTicker(cacheRefreshDuration)
 	go c.warmUpCacheJob(ticker)
 
 	return c
@@ -48,10 +57,6 @@ func (c *CacheService) warmUpCache() {
 		return
 	}
 
-	c.rwLock.Lock()
-	defer c.rwLock.Unlock()
-
-	c.cache = make(map[string]string)
 	for _, key := range keys {
 		data, err := c.service.GetByKey(key)
 		if err != nil {
@@ -59,30 +64,38 @@ func (c *CacheService) warmUpCache() {
 			continue
 		}
 
-		c.cache[key] = data
+		c.cache.SetWithTTL(key, data, 0, c.cacheTtl)
 	}
+
+	c.cache.SetWithTTL(c.cacheKeysKey, keys, 0, c.cacheTtl)
 }
 
 func (c *CacheService) GetById(id string) (string, error) {
-	c.rwLock.RLock()
-	defer c.rwLock.RUnlock()
-
 	key := c.service.GetPrefix() + id
-	result, found := c.cache[key]
+	result, found := c.cache.Get(key)
 	if !found {
 		return "", nil
 	}
 
-	return result, nil
+	return result.(string), nil
 }
 
 func (c *CacheService) GetAll() ([]string, error) {
-	c.rwLock.RLock()
-	defer c.rwLock.RUnlock()
+	keys, found := c.cache.Get(c.cacheKeysKey)
+	if !found {
+		// rollback if we have no keys in cache
+		return c.service.GetAll()
+	}
 
-	result := make([]string, 0, len(c.cache))
-	for _, value := range c.cache {
-		result = append(result, value)
+	keysSlice := keys.([]string)
+	result := make([]string, 0, len(keysSlice))
+	for _, key := range keysSlice {
+		value, found := c.cache.Get(key)
+		if !found {
+			continue
+		}
+
+		result = append(result, value.(string))
 	}
 
 	return result, nil

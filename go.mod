@@ -3,6 +3,7 @@ module redis-go-dispatcher
 go 1.21
 
 require (
+	github.com/dgraph-io/ristretto v0.1.1
 	github.com/gomodule/redigo v1.8.9
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
@@ -15,9 +16,12 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/containerd v1.7.3 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/golang/glog v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
