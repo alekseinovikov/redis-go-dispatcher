@@ -4,24 +4,16 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-type RedisService interface {
-	GetByKey(id string) (string, error)
-	GetAll() ([]string, error)
-	GetAllKeys() ([]string, error)
-	GetPrefix() string
-	GetById(id string) (string, error)
-}
-
-type JsonService struct {
+type JsonServiceImpl struct {
 	prefix    string
 	redisPool *redis.Pool
 }
 
-func NewJsonService(prefix string, redisPool *redis.Pool) *JsonService {
-	return &JsonService{prefix, redisPool}
+func NewJsonService(prefix string, redisPool *redis.Pool) *JsonServiceImpl {
+	return &JsonServiceImpl{prefix, redisPool}
 }
 
-func (s *JsonService) GetAll() ([]string, error) {
+func (s *JsonServiceImpl) GetAll() ([]string, error) {
 	conn := s.redisPool.Get()
 	defer func(conn redis.Conn) {
 		_ = conn.Close()
@@ -45,15 +37,15 @@ func (s *JsonService) GetAll() ([]string, error) {
 	return result, nil
 }
 
-func (s *JsonService) GetPrefix() string {
+func (s *JsonServiceImpl) GetPrefix() string {
 	return s.prefix
 }
 
-func (s *JsonService) GetById(id string) (string, error) {
+func (s *JsonServiceImpl) GetById(id string) (string, error) {
 	return s.GetByKey(s.prefix + id)
 }
 
-func (s *JsonService) GetByKey(key string) (string, error) {
+func (s *JsonServiceImpl) GetByKey(key string) (string, error) {
 	conn := s.redisPool.Get()
 	defer func(conn redis.Conn) {
 		_ = conn.Close()
@@ -76,7 +68,7 @@ func (s *JsonService) GetByKey(key string) (string, error) {
 	return data, nil
 }
 
-func (s *JsonService) GetAllKeys() ([]string, error) {
+func (s *JsonServiceImpl) GetAllKeys() ([]string, error) {
 	conn := s.redisPool.Get()
 	defer func(conn redis.Conn) {
 		_ = conn.Close()

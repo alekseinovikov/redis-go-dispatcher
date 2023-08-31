@@ -7,7 +7,15 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-type CacheService struct {
+type RedisService interface {
+	GetByKey(id string) (string, error)
+	GetAll() ([]string, error)
+	GetAllKeys() ([]string, error)
+	GetPrefix() string
+	GetById(id string) (string, error)
+}
+
+type RedisCachedService struct {
 	cache        *ristretto.Cache
 	service      RedisService
 	cacheTtl     time.Duration
@@ -18,7 +26,7 @@ func NewCacheService(
 	readService RedisService,
 	cacheRefreshDuration time.Duration,
 	cacheTtl time.Duration,
-) *CacheService {
+) *RedisCachedService {
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -28,7 +36,7 @@ func NewCacheService(
 		panic(err)
 	}
 
-	c := &CacheService{
+	c := &RedisCachedService{
 		cache:        cache,
 		service:      readService,
 		cacheTtl:     cacheTtl,
@@ -41,7 +49,7 @@ func NewCacheService(
 	return c
 }
 
-func (c *CacheService) warmUpCacheJob(ticker *time.Ticker) {
+func (c *RedisCachedService) warmUpCacheJob(ticker *time.Ticker) {
 	for {
 		select {
 		case <-ticker.C:
@@ -50,7 +58,7 @@ func (c *CacheService) warmUpCacheJob(ticker *time.Ticker) {
 	}
 }
 
-func (c *CacheService) warmUpCache() {
+func (c *RedisCachedService) warmUpCache() {
 	keys, err := c.service.GetAllKeys()
 	if err != nil {
 		fmt.Println(err)
@@ -70,7 +78,7 @@ func (c *CacheService) warmUpCache() {
 	c.cache.SetWithTTL(c.cacheKeysKey, keys, 0, c.cacheTtl)
 }
 
-func (c *CacheService) GetById(id string) (string, error) {
+func (c *RedisCachedService) GetById(id string) (string, error) {
 	key := c.service.GetPrefix() + id
 	result, found := c.cache.Get(key)
 	if !found {
@@ -80,11 +88,11 @@ func (c *CacheService) GetById(id string) (string, error) {
 	return result.(string), nil
 }
 
-func (c *CacheService) GetAll() ([]string, error) {
+func (c *RedisCachedService) GetAll() ([]string, error) {
 	keys, found := c.cache.Get(c.cacheKeysKey)
 	if !found {
-		// rollback if we have no keys in cache
-		return c.service.GetAll()
+		// we don't have keys in cache, so we return empty result
+		return make([]string, 0), nil
 	}
 
 	keysSlice := keys.([]string)

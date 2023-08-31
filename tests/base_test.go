@@ -30,17 +30,31 @@ var cacheDuration = 300 * time.Millisecond
 func testPrefixes() []Prefix {
 	return []Prefix{
 		{
-			URI:                  "/cars",
-			RedisPrefix:          "cars.",
+			URI:                  "/cached-cars",
+			RedisPrefix:          "cached-cars.",
 			CacheEnabled:         true,
 			CacheRefreshDuration: cacheDuration,
 			CacheTtl:             cacheDuration,
 		}, {
-			URI:                  "/people",
-			RedisPrefix:          "people.",
+			URI:                  "/cached-people",
+			RedisPrefix:          "cached-people.",
 			CacheEnabled:         true,
 			CacheRefreshDuration: cacheDuration,
 			CacheTtl:             cacheDuration,
+		}, {
+			URI:                  "/cached-long_warm_up",
+			RedisPrefix:          "cached-long_warm_up.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: 10 * time.Second,
+			CacheTtl:             cacheDuration,
+		}, {
+			URI:          "/cars",
+			RedisPrefix:  "cars.",
+			CacheEnabled: false,
+		}, {
+			URI:          "/people",
+			RedisPrefix:  "people.",
+			CacheEnabled: false,
 		},
 	}
 }
@@ -87,6 +101,15 @@ func (suite *IntegrationTestSuite) startWebServer(connectionString string) {
 	suite.URLPrefix = fmt.Sprintf("http://localhost:%s", port)
 }
 
+func getFreePort() string {
+	port, err := freeport.GetFreePort()
+	if err != nil {
+		panic(err)
+	}
+
+	return strconv.Itoa(port)
+}
+
 func (suite *IntegrationTestSuite) createRedisConnPool(redisContainer *rt.RedisContainer, ctx context.Context) string {
 	connectionString, err := redisContainer.ConnectionString(ctx)
 	require.NoError(suite.T(), err)
@@ -108,15 +131,6 @@ func (suite *IntegrationTestSuite) startRedisContainer(ctx context.Context) *rt.
 	return redisContainer
 }
 
-func getFreePort() string {
-	port, err := freeport.GetFreePort()
-	if err != nil {
-		panic(err)
-	}
-
-	return strconv.Itoa(port)
-}
-
 func (suite *IntegrationTestSuite) WaitForCacheDuration() {
 	time.Sleep(cacheDuration + 200*time.Millisecond)
 }
@@ -129,7 +143,6 @@ func (suite *IntegrationTestSuite) PutToRedisAsJson(key string, obj interface{})
 
 	value, _ := json.Marshal(obj)
 	_, _ = conn.Do("SET", key, value)
-	suite.WaitForCacheDuration()
 }
 
 func (suite *IntegrationTestSuite) DeleteFromRedis(key string) {
@@ -139,7 +152,6 @@ func (suite *IntegrationTestSuite) DeleteFromRedis(key string) {
 	}(conn)
 
 	_, _ = conn.Do("DEL", key)
-	suite.WaitForCacheDuration()
 }
 
 func (suite *IntegrationTestSuite) HttpGetJson(uri string, target interface{}) {

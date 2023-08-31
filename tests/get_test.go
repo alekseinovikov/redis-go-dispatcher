@@ -33,12 +33,14 @@ func (suite *IntegrationTestSuite) TestGetByIdFoundAndThenDeleted() {
 	// given
 	original := Car{ID: "1", Model: "Toyota", Year: 2022}
 	suite.PutToRedisAsJson("cars.1", original)
+
 	var result Car
 	suite.HttpGetJson("/cars/1", &result)
 	assert.Equal(suite.T(), original, result)
 
 	// when
 	suite.DeleteFromRedis("cars.1")
+
 	response := suite.HttpGet("/cars/1")
 
 	// then
@@ -82,6 +84,7 @@ func (suite *IntegrationTestSuite) TestGetByIdMultiplePrefixesFoundAndThenOneDel
 
 	// when
 	suite.DeleteFromRedis("people.1")
+
 	suite.HttpGetJson("/cars/1", &carResult)
 	response := suite.HttpGet("/people/1")
 
