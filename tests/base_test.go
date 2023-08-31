@@ -48,12 +48,22 @@ func testPrefixes() []Prefix {
 			CacheRefreshDuration: 10 * time.Second,
 			CacheTtl:             cacheDuration,
 		}, {
+			URI:                  "/cached-query",
+			RedisPrefix:          "cached-query.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: cacheDuration,
+			CacheTtl:             cacheDuration,
+		}, {
 			URI:          "/cars",
 			RedisPrefix:  "cars.",
 			CacheEnabled: false,
 		}, {
 			URI:          "/people",
 			RedisPrefix:  "people.",
+			CacheEnabled: false,
+		}, {
+			URI:          "/query",
+			RedisPrefix:  "query.",
 			CacheEnabled: false,
 		},
 	}
