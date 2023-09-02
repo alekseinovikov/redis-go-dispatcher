@@ -25,7 +25,7 @@ type IntegrationTestSuite struct {
 	RedisContainer *rt.RedisContainer
 }
 
-var cacheDuration = 300 * time.Millisecond
+var cacheDuration = 100 * time.Millisecond
 
 func testPrefixes() []Prefix {
 	return []Prefix{
@@ -54,6 +54,18 @@ func testPrefixes() []Prefix {
 			CacheRefreshDuration: cacheDuration,
 			CacheTtl:             cacheDuration,
 		}, {
+			URI:                  "/cached-complex-query",
+			RedisPrefix:          "cached-complex-query.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: cacheDuration,
+			CacheTtl:             cacheDuration,
+		}, {
+			URI:                  "/cached-super-complex-query",
+			RedisPrefix:          "cached-super-complex-query.",
+			CacheEnabled:         true,
+			CacheRefreshDuration: cacheDuration,
+			CacheTtl:             cacheDuration,
+		}, {
 			URI:          "/cars",
 			RedisPrefix:  "cars.",
 			CacheEnabled: false,
@@ -64,6 +76,14 @@ func testPrefixes() []Prefix {
 		}, {
 			URI:          "/query",
 			RedisPrefix:  "query.",
+			CacheEnabled: false,
+		}, {
+			URI:          "/complex-query",
+			RedisPrefix:  "complex-query.",
+			CacheEnabled: false,
+		}, {
+			URI:          "/super-complex-query",
+			RedisPrefix:  "super-complex-query.",
 			CacheEnabled: false,
 		},
 	}
@@ -142,7 +162,7 @@ func (suite *IntegrationTestSuite) startRedisContainer(ctx context.Context) *rt.
 }
 
 func (suite *IntegrationTestSuite) WaitForCacheDuration() {
-	time.Sleep(cacheDuration + 200*time.Millisecond)
+	time.Sleep(cacheDuration + 100*time.Millisecond)
 }
 
 func (suite *IntegrationTestSuite) PutToRedisAsJson(key string, obj interface{}) {

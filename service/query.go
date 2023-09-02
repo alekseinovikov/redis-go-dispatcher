@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type QueryService struct {
@@ -37,7 +38,7 @@ func (s *QueryService) buildFilters(queryParams map[string][]string) []filter {
 	for key, values := range queryParams {
 		filters = append(filters, filter{
 			logger:    s.logger,
-			fieldName: key,
+			fieldPath: buildPath(key),
 			values:    values,
 		})
 	}
@@ -47,7 +48,7 @@ func (s *QueryService) buildFilters(queryParams map[string][]string) []filter {
 
 type filter struct {
 	logger    Logger
-	fieldName string
+	fieldPath path
 	values    []string
 }
 
@@ -65,7 +66,7 @@ func (f *filter) Apply(data []string) []string {
 			continue
 		}
 
-		if val, ok := jsonMap[f.fieldName]; ok {
+		if val, ok := f.fieldPath.findValue(jsonMap); ok {
 			valueString := convertToString(val)
 
 			if Contains(f.values, valueString) {
@@ -100,4 +101,38 @@ func Contains[T comparable](s []T, e T) bool {
 		}
 	}
 	return false
+}
+
+type path struct {
+	field string
+	next  *path
+}
+
+func (p *path) findValue(values map[string]interface{}) (string, bool) {
+	stepValue, found := values[p.field]
+	if !found {
+		return "", false
+	}
+
+	if p.next == nil {
+		return convertToString(stepValue), true
+	}
+
+	if stepValues, ok := stepValue.(map[string]interface{}); ok {
+		return p.next.findValue(stepValues)
+	}
+
+	return "", false
+}
+
+func buildPath(field string) path {
+	subFields := strings.Split(field, ".")
+	return *createPath(subFields[0], subFields[1:])
+}
+
+func createPath(field string, rest []string) *path {
+	if len(rest) == 0 {
+		return &path{field: field}
+	}
+	return &path{field: field, next: createPath(rest[0], rest[1:])}
 }
